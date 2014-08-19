@@ -244,6 +244,7 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
 
     // Loop for the entire list of Pareto points.
     auto it = paretoFrontier.begin();
+
     while (it != paretoFrontier.end())
     {
         /* Variable to check if the point in the Pareto frontier list is
@@ -276,7 +277,7 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
 
         /* If the point in the Pareto frontier is dominated, then exclude it
            from the list. */
-        if( pointDominated )
+        if (pointDominated)
             it = paretoFrontier.erase(it);
         else
             ++it;
