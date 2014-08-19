@@ -1,0 +1,38 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+PROJECT("MGEOcpp")
+
+IF(UNIX)
+        SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -g")
+        SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+ENDIF()
+
+MESSAGE(STATUS "CMAKE_GENERATOR : ${CMAKE_GENERATOR}")
+
+# Options.
+option(MGEOCPP_DEBUG "Print debug messages" OFF)
+
+# Directories.
+SET(SOURCES_DIR src/)
+
+IF( MGEOCPP_DEBUG )
+    ADD_DEFINITIONS( -DMGEOCPP_DEBUG )
+ENDIF( MGEOCPP_DEBUG )
+
+# Set source files.
+SET(SOURCES_FILES
+        ${SOURCES_DIR}/mgeocpp_testcases.cpp
+        )
+        
+# Executable.
+IF( CMAKE_BUILD_TYPE MATCHES Debug )
+    SET(EXEC_NAME "mgeocpp_testcases_debug")
+ELSE( CMAKE_BUILD_TYPE MATCHES Debug )
+    SET(EXEC_NAME "mgeocpp_testcases")
+ENDIF( CMAKE_BUILD_TYPE MATCHES Debug )
+    
+ADD_EXECUTABLE(${EXEC_NAME} ${SOURCES_FILES})
+
+# Include files.
+INCLUDE_DIRECTORIES(${SOURCES_DIR})
