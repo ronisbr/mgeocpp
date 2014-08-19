@@ -20,6 +20,8 @@
 #include <iomanip>
 #include <random>
 
+namespace MGEOcpp {
+
 /**
  * @brief Structure that defines the limits of the design variables.
  *
@@ -191,6 +193,8 @@ private:
 };
 
 #include "MGEOcppMain.hpp"
+
+}
 
 #endif // MGEOCPP_HPP
  

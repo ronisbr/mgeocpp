@@ -16,6 +16,8 @@
 
 #include "MGEOcpp/MGEOcpp.hpp"
 
+using namespace MGEOcpp;
+
 bool objectiveFunctions1(double *vars, double *f)
 {
     double x1 = vars[0];
