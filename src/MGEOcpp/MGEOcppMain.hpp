@@ -478,7 +478,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
         std::sort(std::begin(fRank), std::end(fRank),
             [](std::pair<int, Scalar> const &a, std::pair<int, Scalar> const &b)
             {
-                return a.second <= b.second;
+                return a.second < b.second;
             });
 
         // Choose a bit to be changed for the new "population".
