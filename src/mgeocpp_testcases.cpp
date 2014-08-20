@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
         mgeo1v.run();
         break;
     case 4:
-        mgeo2v.setDesignVarsLimits({-10, -10},{+10, +10});
+        mgeo2v.setDesignVarsLimits(-10,+10);
         mgeo2v.objectiveFunctions = &objectiveFunctions4;
         mgeo2v.run();
         break;

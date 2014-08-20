@@ -152,6 +152,45 @@ bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(
     return true;
 }
 
+/**
+ * @brief Set the limits for all variables.
+ * @author Ronan Arraes Jardim Chagas
+ * @date 2014-08-18
+ *
+ * @param[in] min The minimum value for all design variables.
+ * @param[in] max The maximum value for all design variables.
+ *
+ * @tparam N Number of design variables.
+ * @tparam nb Number of bits per design variable.
+ * @tparam nf Number of objective functions.
+ * @tparam Scalar Scalar type of design variables and objective functions.
+ */
+
+template<unsigned int N, 
+         unsigned int nb, 
+         unsigned int nf, 
+         typename Scalar>
+bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(Scalar min, Scalar max)
+{
+    // Check the limits.
+    if ( min >= max )
+    {
+        std::cerr << "MGEO::setDesignVars(): The minimum value must be smaller than the maximum value."
+                  << std::endl;
+        return false;
+    }
+
+    // Add the limits to the designVars variable.
+    for(int i = 0; i < N; i++)
+    {
+        designVars[i].min = min;
+        designVars[i].max = max;
+    }
+
+    limitsSet_ = true;
+    return true;
+}
+
 /******************************************************************************
                                    Functions
  ******************************************************************************/

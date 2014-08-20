@@ -113,6 +113,8 @@ public:
     bool setDesignVarsLimits(std::initializer_list<Scalar> min, 
                              std::initializer_list<Scalar> max);
 
+    bool setDesignVarsLimits(Scalar min, Scalar max);
+
     /**************************************************************************
                                    Functions
     ***************************************************************************/
