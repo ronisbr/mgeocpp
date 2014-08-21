@@ -480,31 +480,47 @@ bool MGEO<N, nb, nf, Scalar>::run()
         /* Choose which objective function will be used to compute the adaptability
            and to assemble the rank. */
         int chosenFunc = rand_f_(rng_);
-        
+
+        // Copy of string to be used in the parallel loop.
+        std::bitset<N*nb> string_p = string_;
+
+        // Check if there was a problem with the objective functions.
+        bool objectiveFunctionsProblem = false;
+
+#pragma omp parallel for private(string_p, vars, f, paretoPoint) shared(objectiveFunctionsProblem)
         for(int i = 0; i < N*nb; i++)
         {
+            string_p = string_;
+
             // Toggle the j-th bit of the string.
-            string_.flip(i);
+            string_p.flip(i);
                 
             // Compute the objective functions. 
-            if (!callObjectiveFunctions(string_, vars, f))
-                return false;
+            if(!callObjectiveFunctions(string_p, vars, f))
+                objectiveFunctionsProblem = true;
             
             // Create the candidate Pareto point.
             std::copy(&vars[0], &vars[N], paretoPoint.vars);
             std::copy(&f[0], &f[nf], paretoPoint.f);
             
             // Check the dominance of the Pareto point.
-            checkDominance(paretoPoint);
+#pragma omp critical
+            {
+                checkDominance(paretoPoint);
+            }
             
             // Add the result to the rank.
             fRank[i].first  = i;
             fRank[i].second = f[chosenFunc];
             
             // Reset the bit.
-            string_.flip(i);
+            string_p.flip(i);
         }
-        
+
+        // Check if there was a problem in the objective functions.
+        if(objectiveFunctionsProblem)
+            return false;
+
         nfobPerRun += N*nb*nf;
 
         // Ranking.

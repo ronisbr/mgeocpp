@@ -69,7 +69,7 @@ bool objectiveFunctions4(double *vars, double *f)
 
 int main(int argc, char *argv[])
 {
-    const int testcase = 4;
+    const int testcase = 1;
 
     // For cases 1, 2, and 3.
     MGEO<1, 16, 2> mgeo1v(0.5, 500000, 50);
