@@ -92,7 +92,7 @@ public:
 
     /// @brief Get the string.
     uint8_t* getString() const {
-        return string;
+        return string_;
     }
 
     /// @brief Set tau.
@@ -120,11 +120,13 @@ public:
     ***************************************************************************/
     
     void initializeString();
-    bool callObjectiveFunctions(Scalar *vars, Scalar *f);
+    bool callObjectiveFunctions(std::bitset<N*nb> string, 
+                                Scalar *vars, 
+                                Scalar *f);
     bool checkDominance(sParetoPoint<N, nf, Scalar> p);
     bool run();
     void printParetoFrontier(std::ostream& outStream = std::cout) const;
-    void stringToScalar(Scalar* vars);
+    void stringToScalar(std::bitset<N*nb> string, Scalar* vars);
 
     /// @brief Pointer to the objective function.
     bool (*objectiveFunctions)(Scalar* vars, Scalar* f);
@@ -164,7 +166,7 @@ private:
     sDesignVariable<Scalar> designVars[N];
 
     /// String.
-    std::bitset<N*nb> string;
+    std::bitset<N*nb> string_;
 
     /**************************************************************************
                                  Random Numbers

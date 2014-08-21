@@ -200,6 +200,7 @@ bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(Scalar min, Scalar max)
  * @author Ronan Arraes Jardim Chagas
  * @date 2014-08-18
  *
+ * @param[in] string String.
  * @param[out] vars Real values of the design variables that are obtained using
  * the current string and the limits in designVars.
  * @param[out] f Values of the objective functions evaluated at <tt>vars</tt>.
@@ -217,7 +218,9 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(Scalar *vars, Scalar *f)
+bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(std::bitset<N*nb> string, 
+                                                     Scalar *vars, 
+                                                     Scalar *f)
 {
     // Check if the output parameters are NULL.
     if ( (vars == NULL) || (f == NULL) )
@@ -228,9 +231,6 @@ bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(Scalar *vars, Scalar *f)
         return false;
     }
 
-    // Transform the string of bits into scalars.
-    stringToScalar(vars);
-
     // Check if the objective functions were set.
     if (objectiveFunctions == NULL)
     {
@@ -240,16 +240,11 @@ bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(Scalar *vars, Scalar *f)
         return false;
     }
 
+    // Transform the string of bits into scalars.
+    stringToScalar(string, vars);
+
     // Call the objective functions.
-    if (!objectiveFunctions(vars, f))
-    {
-        std::cerr << "MGEO::callObjectiveFunctions(): The objective functions returned an error."
-                  << std::endl;
-
-        return false;
-    }
-
-    return true;
+    return objectiveFunctions(vars, f);
 }
 
 /**
@@ -347,7 +342,7 @@ template<unsigned int N,
 void MGEO<N, nb, nf, Scalar>::initializeString()
 {        
     for(int i = 0; i<N*nb; i++)
-        string[i] = rand_bit_(rng_);
+        string_[i] = rand_bit_(rng_);
 }
 
 /**
@@ -464,7 +459,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             initializeString();
 
             // Call the objective functions for the first time.
-            if (!callObjectiveFunctions(vars, f))
+            if (!callObjectiveFunctions(string_, vars, f))
                 return false;
 
             nfobPerRun += nf;
@@ -491,10 +486,10 @@ bool MGEO<N, nb, nf, Scalar>::run()
             for(int j = 0; j < nb; j++)
             {
                 // Toggle the j-th bit of the string.
-                string.flip(i*nb+j);
+                string_.flip(i*nb+j);
                 
                 // Compute the objective functions. 
-                if (!callObjectiveFunctions(vars, f))
+                if (!callObjectiveFunctions(string_, vars, f))
                     return false;
                 nfobPerRun += nf;
                 
@@ -510,7 +505,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
                 fRank[i*nb+j].second = f[chosenFunc];
                 
                 // Reset the bit.
-                string.flip(i*nb+j);
+                string_.flip(i*nb+j);
             }
         }
 
@@ -535,7 +530,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             if ( rand_(rng_) <= Pk  )
             {
                 // If the toggle is accepted, then exit the loop.
-                string.flip(fRank[b_sample].first);
+                string_.flip(fRank[b_sample].first);
                 bitAccepted = true;
             }
         }
@@ -574,6 +569,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
  * @author Ronan Arraes Jardim Chagas
  * @date 2014-08-18
  *
+ * @param[in] string String.
  * @param[out] vars The converted design variables.
  *
  * @tparam N Number of design variables.
@@ -585,7 +581,8 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-void MGEO<N, nb, nf, Scalar>::stringToScalar(Scalar* vars)
+void MGEO<N, nb, nf, Scalar>::stringToScalar(std::bitset<N*nb> string, 
+                                             Scalar* vars)
 {
     // Loop for each project variable.
     for(int i = 0; i < N; i++)
