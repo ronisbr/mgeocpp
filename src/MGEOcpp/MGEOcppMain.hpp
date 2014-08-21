@@ -481,33 +481,31 @@ bool MGEO<N, nb, nf, Scalar>::run()
            and to assemble the rank. */
         int chosenFunc = rand_f_(rng_);
         
-        for(int i = 0; i < N; i++)
+        for(int i = 0; i < N*nb; i++)
         {
-            for(int j = 0; j < nb; j++)
-            {
-                // Toggle the j-th bit of the string.
-                string_.flip(i*nb+j);
+            // Toggle the j-th bit of the string.
+            string_.flip(i);
                 
-                // Compute the objective functions. 
-                if (!callObjectiveFunctions(string_, vars, f))
-                    return false;
-                nfobPerRun += nf;
-                
-                // Create the candidate Pareto point.
-                std::copy(&vars[0], &vars[N], paretoPoint.vars);
-                std::copy(&f[0], &f[nf], paretoPoint.f);
-                
-                // Check the dominance of the Pareto point.
-                checkDominance(paretoPoint);
-                
-                // Add the result to the rank.
-                fRank[i*nb+j].first  = i*nb+j;
-                fRank[i*nb+j].second = f[chosenFunc];
-                
-                // Reset the bit.
-                string_.flip(i*nb+j);
-            }
+            // Compute the objective functions. 
+            if (!callObjectiveFunctions(string_, vars, f))
+                return false;
+            
+            // Create the candidate Pareto point.
+            std::copy(&vars[0], &vars[N], paretoPoint.vars);
+            std::copy(&f[0], &f[nf], paretoPoint.f);
+            
+            // Check the dominance of the Pareto point.
+            checkDominance(paretoPoint);
+            
+            // Add the result to the rank.
+            fRank[i].first  = i;
+            fRank[i].second = f[chosenFunc];
+            
+            // Reset the bit.
+            string_.flip(i);
         }
+        
+        nfobPerRun += N*nb*nf;
 
         // Ranking.
         std::sort(std::begin(fRank), std::end(fRank),
