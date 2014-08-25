@@ -553,6 +553,10 @@ bool MGEO<N, nb, nf, Scalar>::run()
            reinitialize the algorithm. */
         if (nfobPerRun > nfobRunMax)
         {
+            nfobPerRun = 0;
+            reinitialize = true;
+            run += 1;
+
 #ifdef MGEOCPP_DEBUG
             std::cout << "100%" << std::endl << std::endl;
             std::cout << "Pareto frontier at run " << run+1 << ":" 
@@ -565,15 +569,47 @@ bool MGEO<N, nb, nf, Scalar>::run()
                       << paretoFrontier.size()*sizeof(sParetoPoint<N, nf, Scalar>)/1024.0/1024.0
                       << std::endl << std::endl << std::endl;
 
-            std::cout << "MGEO: Run " << run+1 << "..." << std::endl;
             count = 0;
-#endif // MGEOCPP_DEBUG
 
-            nfobPerRun = 0;
-            reinitialize = true;
-            run += 1;
+            if( run < runMax_)
+                std::cout << "MGEO: Run " << run+1 << "..." << std::endl;
+#endif // MGEOCPP_DEBUG
         }
     }
+
+    return true;
+}
+
+/**
+ * @brief Sort the points in the Pareto Frontier.
+ * @author Ronan Arraes Jardim Chagas
+ * @date 2014-08-25
+ *
+ * @param[in] fobj Function to sort.
+ *
+ * @retval TRUE The list was sorted.
+ * @retval FALSE The list was not sorted.
+ */
+template<unsigned int N, 
+         unsigned int nb, 
+         unsigned int nf, 
+         typename Scalar>
+bool MGEO<N, nb, nf, Scalar>::sortParetoFrontier(int fobj)
+{
+    // Check the parameter.
+    if( (fobj < 1) || (fobj > nf) )
+    {
+        std::cerr << "sortParetofrontier(): fobj must be between 1 and the number of objective functions."
+                  << std::endl;
+        return false;
+    }
+
+    paretoFrontier.sort(
+        [&fobj](sParetoPoint<N, nf, Scalar> const &a, 
+                sParetoPoint<N, nf, Scalar> const &b)
+        {
+            return a.f[fobj-1] < b.f[fobj-1];
+        });
 
     return true;
 }

@@ -69,7 +69,7 @@ bool objectiveFunctions4(double *vars, double *f)
 
 int main(int argc, char *argv[])
 {
-    const int testcase = 1;
+    const int testcase = 4;
 
     // For cases 1, 2, and 3.
     MGEO<1, 16, 2> mgeo1v(0.5, 500000, 50);
@@ -105,9 +105,15 @@ int main(int argc, char *argv[])
     }
 
     if(testcase != 4)
+    {
+        mgeo1v.sortParetoFrontier();
         mgeo1v.printParetoFrontier();
+    }
     else
+    {
+        mgeo2v.sortParetoFrontier();
         mgeo2v.printParetoFrontier();
+    }
 
     return 0;
 }

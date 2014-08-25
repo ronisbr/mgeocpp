@@ -124,8 +124,9 @@ public:
                                 Scalar *vars, 
                                 Scalar *f);
     bool checkDominance(sParetoPoint<N, nf, Scalar> p);
-    bool run();
     void printParetoFrontier(std::ostream& outStream = std::cout) const;
+    bool run();
+    bool sortParetoFrontier(int fobj = 1);
     void stringToScalar(std::bitset<N*nb> string, Scalar* vars);
 
     /// @brief Pointer to the objective function.
