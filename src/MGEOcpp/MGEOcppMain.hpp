@@ -17,7 +17,7 @@
  * @param[in] rng_seed Seed for the random number generator.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -31,7 +31,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax, int rng_seed)
       tau_(tau),
       nfobMax_(nfobMax),
       runMax_(runMax),
-      limitsSet_(false),
+      designVarsConfigured_(false),
       rng_(rng_seed)
 {
 }
@@ -46,7 +46,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax, int rng_seed)
  * @param[in] runMax Maximum number of independent runs (reinitializations).
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  *
@@ -63,7 +63,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax)
       tau_(tau),
       nfobMax_(nfobMax),
       runMax_(runMax),
-      limitsSet_(false)
+      designVarsConfigured_(false)
 {
     std::random_device rd;
 
@@ -77,7 +77,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax)
  * @date 2014-08-18
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -95,15 +95,16 @@ MGEO<N, nb, nf, Scalar>::~MGEO()
  ******************************************************************************/
 
 /**
- * @brief Set the limits for each design variable.
+ * @brief Configure the design variables.
  * @author Ronan Arraes Jardim Chagas
  * @date 2014-08-18
  *
+ * @param[in] bits List containing the number of bits for each design variable.
  * @param[in] min List containing the minimum of each design variable.
  * @param[in] max List containing the maximum of each design variable.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -112,20 +113,27 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(
+bool MGEO<N, nb, nf, Scalar>::confDesignVars(
+    std::initializer_list<unsigned int> bits,
     std::initializer_list<Scalar> min, 
     std::initializer_list<Scalar> max) 
 {
+    // Pointer to the beginning of the list that contains the number of bits.
+    auto p_bits = std::begin(bits);
+
     // Pointer to the beginning of the list that contains the minimums.
     auto p_min = std::begin(min);
 
     // Pointer to the beginning of the list that contains the maximums.
     auto p_max = std::begin(max);
+
+    // Pointer to count the total number of bits used.
+    unsigned int numBits = 0;
     
     // Check the list size.
     if ( (min.size() != N) || (max.size() != N) )
     {
-        std::cerr << "MGEO::setDesignVars(): The number of elements on the lists in function setDesignVars() must be " 
+        std::cerr << "MGEO::confDesignVars(): The number of elements on the lists in function confDesignVars() must be " 
                   << N << "." << std::endl;
         return false;
     }
@@ -133,22 +141,47 @@ bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(
     // Add the limits to the designVars variable.
     for(int i = 0; i < N; i++)
     {
-        designVars[i].min = (Scalar)*p_min;
-        designVars[i].max = (Scalar)*p_max;
+        designVars[i].bits      = (unsigned int)*p_bits;
+        designVars[i].min       = (Scalar)*p_min;
+        designVars[i].max       = (Scalar)*p_max;
+        designVars[i].fullScale = ((uint64_t)1 << designVars[i].bits) - 1;
+        designVars[i].index     = numBits;
 
         if( *p_min >= *p_max )
         {
-            std::cerr << "MGEO::setDesignVars(): The elements on the min list must be smaller than the elements on list max."
+            std::cerr << "MGEO::confDesignVars(): The elements on the min list must be smaller than the elements on list max."
                       << std::endl;
             
+            designVarsConfigured_ = false;
             return false;
         }
-        
+
+        if( *p_bits == 0 )
+        {
+            std::cerr << "MGEO::confDesignVars(): The number of bits for a design variable must not be zero."
+                      << std::endl;
+
+            designVarsConfigured_ = false;
+            return false;
+        }
+
+        numBits += *p_bits;
+        p_bits++;
         p_min++;
         p_max++;
     }
 
-    limitsSet_ = true;
+    // Check if the number of bits were configured properly.
+    if( numBits > nb )
+    {
+        std::cerr << "MGEO::confDesignVars(): The number of bits configured for the design variables is bigger than the total number of bits allocated."
+                  << std::endl;
+
+        designVarsConfigured_ = false;
+        return false;
+    }
+
+    designVarsConfigured_ = true;
     return true;
 }
 
@@ -157,11 +190,12 @@ bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(
  * @author Ronan Arraes Jardim Chagas
  * @date 2014-08-18
  *
+ * @param[in] bits The number of bits for each variable.
  * @param[in] min The minimum value for all design variables.
  * @param[in] max The maximum value for all design variables.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -170,24 +204,39 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(Scalar min, Scalar max)
+bool MGEO<N, nb, nf, Scalar>::confDesignVars(unsigned int bits, 
+                                             Scalar min, 
+                                             Scalar max)
 {
+    // Check the number of bits.
+    if ( bits*N > nb )
+    {
+        std::cerr << "MGEO::confDesignVars(): The number of bits configured for the design variables is bigger than the total number of bits allocated."
+                  << std::endl;
+        designVarsConfigured_ = false;
+        return false;
+    }
+    
     // Check the limits.
     if ( min >= max )
     {
-        std::cerr << "MGEO::setDesignVars(): The minimum value must be smaller than the maximum value."
+        std::cerr << "MGEO::confDesignVars(): The minimum value must be smaller than the maximum value."
                   << std::endl;
+        designVarsConfigured_ = false;
         return false;
     }
 
     // Add the limits to the designVars variable.
     for(int i = 0; i < N; i++)
     {
-        designVars[i].min = min;
-        designVars[i].max = max;
+        designVars[i].bits      = bits;
+        designVars[i].min       = min;
+        designVars[i].max       = max;
+        designVars[i].fullScale = ((uint64_t)1 << designVars[i].bits) - 1;
+        designVars[i].index     = i*bits;
     }
 
-    limitsSet_ = true;
+    designVarsConfigured_ = true;
     return true;
 }
 
@@ -206,7 +255,7 @@ bool MGEO<N, nb, nf, Scalar>::setDesignVarsLimits(Scalar min, Scalar max)
  * @param[out] f Values of the objective functions evaluated at <tt>vars</tt>.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  *
@@ -218,7 +267,7 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(std::bitset<N*nb> string, 
+bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(std::bitset<nb> string, 
                                                      Scalar *vars, 
                                                      Scalar *f)
 {
@@ -256,7 +305,7 @@ bool MGEO<N, nb, nf, Scalar>::callObjectiveFunctions(std::bitset<N*nb> string,
  * <tt>paretoFrontier</tt>.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  *
@@ -330,7 +379,7 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
  * @date 2014-08-18
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -341,7 +390,7 @@ template<unsigned int N,
          typename Scalar>
 void MGEO<N, nb, nf, Scalar>::initializeString()
 {        
-    for(int i = 0; i<N*nb; i++)
+    for(int i = 0; i<nb; i++)
         string_[i] = rand_bit_(rng_);
 }
 
@@ -354,7 +403,7 @@ void MGEO<N, nb, nf, Scalar>::initializeString()
  * std::cout).
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -390,7 +439,7 @@ void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream) const
  * @date 2014-08-18
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -402,7 +451,7 @@ template<unsigned int N,
 bool MGEO<N, nb, nf, Scalar>::run()
 {
     // Rank.
-    std::pair<int, Scalar> fRank[N*nb];
+    std::pair<int, Scalar> fRank[nb];
 
     // Variables to create the Pareto point.
     Scalar vars[N];
@@ -422,9 +471,9 @@ bool MGEO<N, nb, nf, Scalar>::run()
     bool reinitialize = true;
 
     // Check if the project variable limits were set.
-    if (!limitsSet_)
+    if (!designVarsConfigured_)
     {
-        std::cerr << "MGEO::run(): The project variable limits must be set before calling run()."
+        std::cerr << "MGEO::run(): The design variables were not properly configured (see MGEO::confDesignVars())."
                   << std::endl;
 
         return false;
@@ -482,13 +531,13 @@ bool MGEO<N, nb, nf, Scalar>::run()
         int chosenFunc = rand_f_(rng_);
 
         // Copy of string to be used in the parallel loop.
-        std::bitset<N*nb> string_p = string_;
+        std::bitset<nb> string_p = string_;
 
         // Check if there was a problem with the objective functions.
         bool objectiveFunctionsProblem = false;
 
 #pragma omp parallel for private(string_p, vars, f, paretoPoint) shared(objectiveFunctionsProblem)
-        for(int i = 0; i < N*nb; i++)
+        for(int i = 0; i < nb; i++)
         {
             string_p = string_;
 
@@ -508,7 +557,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             {
                 checkDominance(paretoPoint);
             }
-            
+
             // Add the result to the rank.
             fRank[i].first  = i;
             fRank[i].second = f[chosenFunc];
@@ -521,7 +570,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
         if(objectiveFunctionsProblem)
             return false;
 
-        nfobPerRun += N*nb*nf;
+        nfobPerRun += nb*nf;
 
         // Ranking.
         std::sort(std::begin(fRank), std::end(fRank),
@@ -623,7 +672,7 @@ bool MGEO<N, nb, nf, Scalar>::sortParetoFrontier(int fobj)
  * @param[out] vars The converted design variables.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -631,7 +680,7 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-void MGEO<N, nb, nf, Scalar>::stringToScalar(std::bitset<N*nb> string, 
+void MGEO<N, nb, nf, Scalar>::stringToScalar(std::bitset<nb> string, 
                                              Scalar* vars)
 {
     // Loop for each project variable.
@@ -640,8 +689,17 @@ void MGEO<N, nb, nf, Scalar>::stringToScalar(std::bitset<N*nb> string,
         // Convert the bits to integer.
         uint64_t varInt = 0;
 
-        for(int j = 0; j < nb; j++)
-            varInt += string[i*nb + j]*std::pow(2, j);
+        // Number of bits allocated for the design variable.
+        unsigned int numBits = designVars[i].bits;
+
+        // Full scale of the design variable.
+        uint64_t fullScale = designVars[i].fullScale;
+
+        // Index of the design variable in the string.
+        uint64_t index = designVars[i].index;
+
+        for(int j = 0; j < numBits; j++)
+            varInt += string[index + j]*std::pow(2, j);
 
         // Convert to type Scalar.
         vars[i] = designVars[i].min + 

@@ -80,22 +80,22 @@ int main(int argc, char *argv[])
     switch(testcase)
     {
     case 1:
-        mgeo1v.setDesignVarsLimits({-10},{+10});
+        mgeo1v.confDesignVars({16},{-10},{+10});
         mgeo1v.objectiveFunctions = &objectiveFunctions1;
         mgeo1v.run();
         break;
     case 2:
-        mgeo1v.setDesignVarsLimits({-10},{+10});
+        mgeo1v.confDesignVars({16},{-10},{+10});
         mgeo1v.objectiveFunctions = &objectiveFunctions2;
         mgeo1v.run();
         break;
     case 3:
-        mgeo1v.setDesignVarsLimits({-10},{+10});
+        mgeo1v.confDesignVars({16},{-10},{+10});
         mgeo1v.objectiveFunctions = &objectiveFunctions3;
         mgeo1v.run();
         break;
     case 4:
-        mgeo2v.setDesignVarsLimits(-10,+10);
+        mgeo2v.confDesignVars(8,-10,+10);
         mgeo2v.objectiveFunctions = &objectiveFunctions4;
         mgeo2v.run();
         break;

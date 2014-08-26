@@ -30,10 +30,16 @@ namespace MGEOcpp {
 template<typename Scalar>
 struct sDesignVariable
 {
+    /// Number of bits.
+    unsigned int bits;
     /// Minimum allowed value for the design variable.
     Scalar min;
     /// Maximum allowed value for the design variable.
     Scalar max;
+    /// Full scale of the variable.
+    uint64_t fullScale;
+    /// Index in the string.
+    uint64_t index;
 };
 
 /**
@@ -56,7 +62,7 @@ struct sParetoPoint
  * @brief Class the implements the MGEO algorithm.
  *
  * @tparam N Number of design variables.
- * @tparam nb Number of bits per design variable.
+ * @tparam nb Total number of bits allocated for the string.
  * @tparam nf Number of objective functions.
  * @tparam Scalar Scalar type of design variables and objective functions.
  */
@@ -110,24 +116,27 @@ public:
         runMax_ = runMax;
     }
        
-    bool setDesignVarsLimits(std::initializer_list<Scalar> min, 
-                             std::initializer_list<Scalar> max);
+    bool confDesignVars(std::initializer_list<unsigned int> bits, 
+                        std::initializer_list<Scalar> min, 
+                        std::initializer_list<Scalar> max);
 
-    bool setDesignVarsLimits(Scalar min, Scalar max);
+    bool confDesignVars(unsigned int bits,
+                        Scalar min,
+                        Scalar max);
 
     /**************************************************************************
                                    Functions
     ***************************************************************************/
     
     void initializeString();
-    bool callObjectiveFunctions(std::bitset<N*nb> string, 
+    bool callObjectiveFunctions(std::bitset<nb> string, 
                                 Scalar *vars, 
                                 Scalar *f);
     bool checkDominance(sParetoPoint<N, nf, Scalar> p);
     void printParetoFrontier(std::ostream& outStream = std::cout) const;
     bool run();
     bool sortParetoFrontier(int fobj = 1);
-    void stringToScalar(std::bitset<N*nb> string, Scalar* vars);
+    void stringToScalar(std::bitset<nb> string, Scalar* vars);
 
     /// @brief Pointer to the objective function.
     bool (*objectiveFunctions)(Scalar* vars, Scalar* f);
@@ -153,21 +162,18 @@ private:
                                    Constants
     ***************************************************************************/
 
-    /// Full scale of each variable given the number of bits.
-    const uint64_t fullScale =  ((uint64_t)1 << nb) - 1;
-
     /**************************************************************************
                                    Variables
     ***************************************************************************/
 
-    /// Variable to store if the design variable limits were already set.
-    bool limitsSet_;
+    /// Variable to store if the design variables were already configured.
+    bool designVarsConfigured_;
 
     /// Structure to store the minimum and maximum values of each variable.
     sDesignVariable<Scalar> designVars[N];
 
     /// String.
-    std::bitset<N*nb> string_;
+    std::bitset<nb> string_;
 
     /**************************************************************************
                                  Random Numbers
@@ -186,9 +192,9 @@ private:
         std::uniform_int_distribution<int>(0, nf-1)
             };
 
-    /// Uniform distribution, integers, 0 to N*nb-1.
+    /// Uniform distribution, integers, 0 to nb-1.
     std::uniform_int_distribution<int> rand_string_bit_{
-        std::uniform_int_distribution<int>(0, N*nb-1)
+        std::uniform_int_distribution<int>(0, nb-1)
             };
 
     /// Uniform distribution, double, 0 to 1.
