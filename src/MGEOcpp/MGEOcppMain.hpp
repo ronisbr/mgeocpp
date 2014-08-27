@@ -116,7 +116,8 @@ template<unsigned int N,
 bool MGEO<N, nb, nf, Scalar>::confDesignVars(
     std::initializer_list<unsigned int> bits,
     std::initializer_list<Scalar> min, 
-    std::initializer_list<Scalar> max) 
+    std::initializer_list<Scalar> max,
+    std::initializer_list<std::string> varNames) 
 {
     // Pointer to the beginning of the list that contains the number of bits.
     auto p_bits = std::begin(bits);
@@ -127,11 +128,18 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(
     // Pointer to the beginning of the list that contains the maximums.
     auto p_max = std::begin(max);
 
+    // Pointer to the beginning of the list that contains the variable names.
+    auto p_name = std::begin(varNames);
+
     // Pointer to count the total number of bits used.
     unsigned int numBits = 0;
-    
+
+    // Variable to check if the design variables name were defined.
+    bool namesDefined = (varNames.size() != 0) ? true : false;
+
     // Check the list size.
-    if ( (min.size() != N) || (max.size() != N) )
+    if ( (min.size() != N) || (max.size() != N) || 
+         ( namesDefined && (varNames.size() != N) ) )
     {
         std::cerr << "MGEO::confDesignVars(): The number of elements on the lists in function confDesignVars() must be " 
                   << N << "." << std::endl;
@@ -146,6 +154,11 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(
         designVars[i].max       = (Scalar)*p_max;
         designVars[i].fullScale = ((uint64_t)1 << designVars[i].bits) - 1;
         designVars[i].index     = numBits;
+
+        if(!namesDefined)
+            designVars[i].name = std::string("VARS "+std::to_string(i));
+        else
+            designVars[i].name = *p_name;
 
         if( *p_min >= *p_max )
         {
@@ -169,6 +182,7 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(
         p_bits++;
         p_min++;
         p_max++;
+        p_name++;
     }
 
     // Check if the number of bits were configured properly.
@@ -234,6 +248,7 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(unsigned int bits,
         designVars[i].max       = max;
         designVars[i].fullScale = ((uint64_t)1 << designVars[i].bits) - 1;
         designVars[i].index     = i*bits;
+        designVars[i].name      = std::string("VARS "+std::to_string(i));
     }
 
     designVarsConfigured_ = true;
@@ -430,18 +445,19 @@ void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream) const
 
     // Header.
     for(int i = 0; i < N; i++)
-        outStream << std::setw(fieldWidth-1) << "VAR " << i << ' ' ;
+        outStream << std::setw(fieldWidth) << designVars[i].name;
+
     for(int i = 0; i < nf; i++)
-        outStream << std::setw(fieldWidth-1) << "FOBJ " << i << ' ' ;
+      outStream << std::setw(fieldWidth-1) << "FOBJ " << i;
     outStream << std::endl;
 
     // Pareto Frontier.
     for(auto it = paretoFrontier.begin(); it != paretoFrontier.end(); it++)
     {
         for(int i = 0; i < N; i++)
-            outStream << std::setw(fieldWidth) << (*it).vars[i] << ' ' ;
+            outStream << std::setw(fieldWidth) << (*it).vars[i] ;
         for(int i = 0; i < nf; i++)
-            outStream << std::setw(fieldWidth) << (*it).f[i] << ' ' ;
+            outStream << std::setw(fieldWidth) << (*it).f[i];
         outStream << std::endl;
     }
 }

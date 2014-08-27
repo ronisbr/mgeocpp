@@ -18,6 +18,7 @@
 #include <list>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <random>
 
 namespace MGEOcpp {
@@ -40,6 +41,8 @@ struct sDesignVariable
     uint64_t fullScale;
     /// Index in the string.
     uint64_t index;
+    /// Name of the variable.
+    std::string name;
 };
 
 /**
@@ -118,7 +121,8 @@ public:
        
     bool confDesignVars(std::initializer_list<unsigned int> bits, 
                         std::initializer_list<Scalar> min, 
-                        std::initializer_list<Scalar> max);
+                        std::initializer_list<Scalar> max,
+                        std::initializer_list<std::string> varNames = {});
 
     bool confDesignVars(unsigned int bits,
                         Scalar min,

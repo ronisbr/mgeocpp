@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
         mgeo1v.run();
         break;
     case 4:
-        mgeo2v.confDesignVars(8,-10,+10);
+        mgeo2v.confDesignVars({8,8},{-10,-10},{+10,+10},{"var x","var y"});
         mgeo2v.objectiveFunctions = &objectiveFunctions4;
         mgeo2v.run();
         break;
