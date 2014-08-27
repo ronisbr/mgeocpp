@@ -429,6 +429,8 @@ void MGEO<N, nb, nf, Scalar>::initializeString()
  *
  * @param[in] outStream Stream to which the list will be printed (default =
  * std::cout).
+ * @param[in] fieldWidth Field width for each printed value.
+ * @param[in] precision Precision of printed values.
  *
  * @tparam N Number of design variables.
  * @tparam nb Total number of bits allocated for the string
@@ -439,10 +441,10 @@ template<unsigned int N,
          unsigned int nb,
          unsigned int nf,
          typename Scalar>
-void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream) const
+void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream,
+                                                  unsigned int fieldWidth,
+                                                  unsigned int precision) const
 {
-    const int fieldWidth = 20;
-
     // Header.
     for(int i = 0; i < N; i++)
         outStream << std::setw(fieldWidth) << designVars[i].name;
@@ -450,6 +452,8 @@ void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream) const
     for(int i = 0; i < nf; i++)
       outStream << std::setw(fieldWidth-1) << "FOBJ " << i;
     outStream << std::endl;
+
+    std::cout.precision(precision);
 
     // Pareto Frontier.
     for(auto it = paretoFrontier.begin(); it != paretoFrontier.end(); it++)
