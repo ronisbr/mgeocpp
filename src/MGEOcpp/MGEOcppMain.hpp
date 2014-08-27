@@ -338,14 +338,34 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
         for(int i = 0; i < nf; i++)
         {
             if( p.f[i] < it->f[i] )
+            {
                 /* The candidate point is not dominated by the point in the
                    list. */
                 candidateDominated = false;
-            else
+            }
+            else if( p.f[i] > it->f[i] )
+            {
                 /* The point in the list is not dominated by the candidate
                    point. */
                 pointDominated = false;
+            }
         }
+
+        /* If the point is dominated by the candidate and dominates the
+           candidate at the same time, then the candidate and the point is the
+           same. Thus, mark to do not add the candidate and exit the loop. */
+        if(pointDominated && candidateDominated)
+        {
+            addPoint = false;
+            break;
+        }
+
+        /* If the point in the Pareto frontier is dominated, then exclude it
+           from the list. */
+        if (pointDominated)
+            it = paretoFrontier.erase(it);
+        else
+            ++it;
 
         /* If the candidate is dominated by any point in the list, stop the
            search and do not add it. */
@@ -357,13 +377,6 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
         // Otherwise, add the point to the list.
         else
             addPoint = true;
-
-        /* If the point in the Pareto frontier is dominated, then exclude it
-           from the list. */
-        if (pointDominated)
-            it = paretoFrontier.erase(it);
-        else
-            ++it;
     }
 
     // Check if the new point must be added.
@@ -514,7 +527,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             nfobPerRun += nf;
 
             // Add the results to the list of Pareto points in the first run.
-            if (run == 0)
+            if (paretoFrontier.size() == 0)
             {
                 std::copy(&vars[0], &vars[N], paretoPoint.vars);
                 std::copy(&f[0], &f[nf], paretoPoint.f);
