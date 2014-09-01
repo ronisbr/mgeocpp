@@ -658,7 +658,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             count = 0;
 
             if( run < runMax_)
-                std::cout << "MGEO: Run " << run+1 << "..." << std::endl;
+                std::cout << "MGEO: Run " << run+1 << " of " << runMax_ << "..." << std::endl;
 #endif // MGEOCPP_DEBUG
 
             run += 1;
