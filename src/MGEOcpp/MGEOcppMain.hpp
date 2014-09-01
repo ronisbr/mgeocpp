@@ -32,6 +32,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int ngenMax, int runMax, int rng_seed)
       ngenMax_(ngenMax),
       runMax_(runMax),
       designVarsConfigured_(false),
+      designVarsNb_(0),
       rng_(rng_seed)
 {
 }
@@ -63,7 +64,8 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int ngenMax, int runMax)
       tau_(tau),
       ngenMax_(ngenMax),
       runMax_(runMax),
-      designVarsConfigured_(false)
+      designVarsConfigured_(false),
+      designVarsNb_(0)
 {
     std::random_device rd;
 
@@ -195,6 +197,7 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(
         return false;
     }
 
+    designVarsNb_ = numBits;
     designVarsConfigured_ = true;
     return true;
 }
@@ -251,6 +254,7 @@ bool MGEO<N, nb, nf, Scalar>::confDesignVars(unsigned int bits,
         designVars[i].name      = std::string("VARS "+std::to_string(i));
     }
 
+    designVarsNb_ = bits*N;
     designVarsConfigured_ = true;
     return true;
 }
@@ -418,7 +422,7 @@ template<unsigned int N,
          typename Scalar>
 void MGEO<N, nb, nf, Scalar>::initializeString()
 {        
-    for(int i = 0; i<nb; i++)
+    for(int i = 0; i<designVarsNb_; i++)
         string_[i] = rand_bit_(rng_);
 }
 
@@ -570,7 +574,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
         bool objectiveFunctionsProblem = false;
 
 #pragma omp parallel for private(string_p, vars, f, paretoPoint) shared(objectiveFunctionsProblem)
-        for(int i = 0; i < nb; i++)
+        for(int i = 0; i < designVarsNb_; i++)
         {
             string_p = string_;
 
@@ -604,7 +608,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             return false;
 
         // Ranking.
-        std::sort(std::begin(fRank), std::end(fRank),
+        std::sort(fRank, fRank+designVarsNb_,
             [](std::pair<int, Scalar> const &a, std::pair<int, Scalar> const &b)
             {
                 return a.second < b.second;

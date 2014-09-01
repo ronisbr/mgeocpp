@@ -175,7 +175,10 @@ private:
     /// Variable to store if the design variables were already configured.
     bool designVarsConfigured_;
 
-    /// Structure to store the minimum and maximum values of each variable.
+    /// Total number of bits used by the design variables.
+    int designVarsNb_;
+
+    /// Structure to store the configuration for each design variable.
     sDesignVariable<Scalar> designVars[N];
 
     /// String.
