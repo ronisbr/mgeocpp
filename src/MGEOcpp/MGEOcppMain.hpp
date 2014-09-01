@@ -457,7 +457,7 @@ void MGEO<N, nb, nf, Scalar>::printParetoFrontier(std::ostream& outStream,
       outStream << std::setw(fieldWidth-1) << "FOBJ " << i;
     outStream << std::endl;
 
-    std::cout.precision(precision);
+    outStream.precision(precision);
 
     // Pareto Frontier.
     for(auto it = paretoFrontier.begin(); it != paretoFrontier.end(); it++)
