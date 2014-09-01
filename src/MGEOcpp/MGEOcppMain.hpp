@@ -637,7 +637,6 @@ bool MGEO<N, nb, nf, Scalar>::run()
         {
             nfobPerRun = 0;
             reinitialize = true;
-            run += 1;
 
 #ifdef MGEOCPP_DEBUG
             std::cout << "100%" << std::endl << std::endl;
@@ -656,6 +655,8 @@ bool MGEO<N, nb, nf, Scalar>::run()
             if( run < runMax_)
                 std::cout << "MGEO: Run " << run+1 << "..." << std::endl;
 #endif // MGEOCPP_DEBUG
+
+            run += 1;
         }
     }
 
