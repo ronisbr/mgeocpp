@@ -12,7 +12,7 @@
  * @date 2014-08-18
  *
  * @param[in] tau Parameter to set the search determinism.
- * @param[in] nfobMax Maximum number of evaluations of the objective function.
+ * @param[in] ngenMax Maximum number of generations.
  * @param[in] runMax Maximum number of independent runs (reinitializations).
  * @param[in] rng_seed Seed for the random number generator.
  *
@@ -26,10 +26,10 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax, int rng_seed)
+MGEO<N, nb, nf, Scalar>::MGEO(double tau, int ngenMax, int runMax, int rng_seed)
     : objectiveFunctions(NULL),
       tau_(tau),
-      nfobMax_(nfobMax),
+      ngenMax_(ngenMax),
       runMax_(runMax),
       designVarsConfigured_(false),
       rng_(rng_seed)
@@ -42,7 +42,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax, int rng_seed)
  * @date 2014-08-18
  *
  * @param[in] tau Parameter to set the search determinism.
- * @param[in] nfobMax Maximum number of evaluations of the objective function.
+ * @param[in] ngenMax Maximum number of generations.
  * @param[in] runMax Maximum number of independent runs (reinitializations).
  *
  * @tparam N Number of design variables.
@@ -58,10 +58,10 @@ template<unsigned int N,
          unsigned int nb, 
          unsigned int nf, 
          typename Scalar>
-MGEO<N, nb, nf, Scalar>::MGEO(double tau, int nfobMax, int runMax)
+MGEO<N, nb, nf, Scalar>::MGEO(double tau, int ngenMax, int runMax)
     : objectiveFunctions(NULL),
       tau_(tau),
-      nfobMax_(nfobMax),
+      ngenMax_(ngenMax),
       runMax_(runMax),
       designVarsConfigured_(false)
 {
@@ -494,11 +494,11 @@ bool MGEO<N, nb, nf, Scalar>::run()
     // Number of independent runs.
     int run = 0;
 
-    // Number of evaluations of the objective functions per run.
-    int nfobPerRun = 0;
+    // Number of generations created per run.
+    int ngenPerRun = 0;
 
-    // Maximum number of evaluations of the objective functions per run.
-    int nfobRunMax = int(nfobMax_/runMax_);
+    // Maximum number generations created per run.
+    int ngenMaxPerRun = std::floor(ngenMax_/runMax_);
 
     // If true, the algorithm will be reinitialized.
     bool reinitialize = true;
@@ -524,11 +524,11 @@ bool MGEO<N, nb, nf, Scalar>::run()
     while(run < runMax_)
     {
 #ifdef MGEOCPP_DEBUG
-        if( nfobPerRun - count > 0.1*nfobRunMax)
+        if( ngenPerRun - count > 0.1*ngenMaxPerRun)
         {
-            std::cout << static_cast<int>(nfobPerRun*100/nfobRunMax) << "%" << "...";
+            std::cout << static_cast<int>(ngenPerRun*100/ngenMaxPerRun) << "%" << "...";
             std::cout.flush();
-            count = nfobPerRun;
+            count = ngenPerRun;
         }
 #endif // MGEOCPP_DEBUG
 
@@ -544,7 +544,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             if (!callObjectiveFunctions(string_, vars, f))
                 return false;
 
-            nfobPerRun += nf;
+            ngenPerRun++;
 
             // Add the results to the list of Pareto points in the first run.
             if (paretoFrontier.size() == 0)
@@ -603,8 +603,6 @@ bool MGEO<N, nb, nf, Scalar>::run()
         if(objectiveFunctionsProblem)
             return false;
 
-        nfobPerRun += nb*nf;
-
         // Ranking.
         std::sort(std::begin(fRank), std::end(fRank),
             [](std::pair<int, Scalar> const &a, std::pair<int, Scalar> const &b)
@@ -631,11 +629,14 @@ bool MGEO<N, nb, nf, Scalar>::run()
             }
         }
 
-        /* If the objective function is evaluated more than nfobRunMax, then
+        // A new generation has been created.
+        ngenPerRun++;
+
+        /* If the number of generations created is more than ngenMaxPerRun, then
            reinitialize the algorithm. */
-        if (nfobPerRun > nfobRunMax)
+        if (ngenPerRun > ngenMaxPerRun)
         {
-            nfobPerRun = 0;
+            ngenPerRun = 0;
             reinitialize = true;
 
 #ifdef MGEOCPP_DEBUG

@@ -76,8 +76,8 @@ template<unsigned int N,
 class MGEO
 {
 public:
-    MGEO(double tau, int nfobMax, int runMax, int rng_seed);
-    MGEO(double tau, int nfobMax, int runMax);
+    MGEO(double tau, int ngenMax, int runMax, int rng_seed);
+    MGEO(double tau, int ngenMax, int runMax);
     ~MGEO();
 
     /**************************************************************************
@@ -94,9 +94,9 @@ public:
         return runMax_;
     }
 
-    /// @brief Get the maximum number of evaluations of the objective functions.
-    int getNfobMax() const {
-        return nfobMax_;
+    /// @brief Get the maximum number of generations.
+    int getNGenMax() const {
+        return ngenMax_;
     }
 
     /// @brief Get the string.
@@ -109,9 +109,9 @@ public:
         tau_ = tau;
     }
 
-    /// @brief Set the maximum number of evaluations of the objective functions.
-    void setNfobMax(int nfobMax) {
-        nfobMax_ = nfobMax;
+    /// @brief Set the maximum number of generations.
+    void setNGenMax(int ngenMax) {
+        ngenMax_ = ngenMax;
     }
 
     /// @brief Set the maximum number of independent runs.
@@ -158,8 +158,8 @@ private:
     /// Parameter to set the search determinism.
     double tau_;
 
-    /// Maximum number of evaluations of the objective function.
-    int nfobMax_;
+    /// Maximum number of generations.
+    int ngenMax_;
 
     /// Maximum number of independent runs (reinitializations).
     int runMax_;
