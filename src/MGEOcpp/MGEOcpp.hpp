@@ -2,6 +2,12 @@
  * @file MGEOcpp.hpp
  * @author Ronan Arraes Jardim Chagas
  * @date 2014-08-15
+ *
+ * @copyright Copyright (c) 2014, Ronan Arraes Jardim Chagas. All rights
+ * reserved.
+ * @license This project is released under the BSD 3-Clause License (see LICENSE
+ * file).
+ *
  * @brief MGEO algorithm for C++.
  *
  */
