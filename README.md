@@ -10,7 +10,7 @@ MGEO
 ----
 
 GEO is an evolutionary algorithm developed at [INPE](http://www.inpe.br) [1]
-that, along with its multiobjective version (M-GEO), have already been
+that, along with its multiobjective version (M-GEO), has already been
 successfully applied to a myriad of optimization engineering problems:
 
 * Thermal design [2];
