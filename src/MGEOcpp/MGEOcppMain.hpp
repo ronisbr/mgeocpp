@@ -541,7 +541,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
             count = ngenPerRun;
         }
 #endif // MGEOCPP_DEBUG
-
+        
         /**************************************************************************
                                  Initialization
         **************************************************************************/
@@ -572,18 +572,19 @@ bool MGEO<N, nb, nf, Scalar>::run()
         /* Choose which objective function will be used to compute the adaptability
            and to assemble the rank. */
         int chosenFunc = rand_f_(rng_);
-
+        
         // Copy of string to be used in the parallel loop.
         std::bitset<nb> string_p = string_;
 
         // Check if there was a problem with the objective functions.
         bool objectiveFunctionsProblem = false;
+        
+        // List of all points created after flipping the bits.
+        sParetoPoint<N,nf,Scalar> candidatePoints[nb];
 
-#pragma omp parallel for private(string_p, vars, f, paretoPoint) shared(objectiveFunctionsProblem)
+#pragma omp parallel for schedule(dynamic) firstprivate(string_p) private(vars, f, paretoPoint)
         for(int i = 0; i < designVarsNb_; i++)
         {
-            string_p = string_;
-
             // Toggle the j-th bit of the string.
             string_p.flip(i);
                 
@@ -592,26 +593,24 @@ bool MGEO<N, nb, nf, Scalar>::run()
                 objectiveFunctionsProblem = true;
             
             // Create the candidate Pareto point.
-            std::copy(&vars[0], &vars[N], paretoPoint.vars);
-            std::copy(&f[0], &f[nf], paretoPoint.f);
+            std::copy(&vars[0], &vars[N], candidatePoints[i].vars);
+            std::copy(&f[0], &f[nf], candidatePoints[i].f);
             
-            // Check the dominance of the Pareto point.
-#pragma omp critical
-            {
-                checkDominance(paretoPoint);
-            }
-
             // Add the result to the rank.
             fRank[i].first  = i;
             fRank[i].second = f[chosenFunc];
-            
-            // Reset the bit.
-            string_p.flip(i);
+
+            /* Notice that the bit does not need to unflip because string_p is a
+               copy of string on each thread. */
         }
 
         // Check if there was a problem in the objective functions.
         if(objectiveFunctionsProblem)
             return false;
+
+        // Add the points to the Pareto frontier.
+        for(int i = 0; i < designVarsNb_; i++)
+            checkDominance(candidatePoints[i]);
 
         // Ranking.
         std::sort(fRank, fRank+designVarsNb_,
