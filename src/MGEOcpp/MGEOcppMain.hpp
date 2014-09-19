@@ -501,17 +501,8 @@ bool MGEO<N, nb, nf, Scalar>::run()
     Scalar f[nf];
     sParetoPoint<N, nf, Scalar> paretoPoint;
 
-    // Number of independent runs.
-    int run = 0;
-
-    // Number of generations created per run.
-    int ngenPerRun = 0;
-
     // Maximum number generations created per run.
     int ngenMaxPerRun = std::floor(ngenMax_/runMax_);
-
-    // If true, the algorithm will be reinitialized.
-    bool reinitialize = true;
 
     // Check if the project variable limits were set.
     if (!designVarsConfigured_)
@@ -525,151 +516,129 @@ bool MGEO<N, nb, nf, Scalar>::run()
     // Clear the Pareto frontier.
     paretoFrontier.clear();
 
-#ifdef MGEOCPP_DEBUG
-    int count = 0;
-    std::cout << "MGEO: Run " << run+1 << "..." << std::endl;
-#endif // MGEOCPP_DEBUG
-
-    // Loop.
-    while(run < runMax_)
+    // Loop - Independent runs.
+    for(int run = 1; run <= runMax_; run++)
     {
 #ifdef MGEOCPP_DEBUG
-        if( ngenPerRun - count > 0.1*ngenMaxPerRun)
-        {
-            std::cout << static_cast<int>(ngenPerRun*100/ngenMaxPerRun) << "%" << "...";
-            std::cout.flush();
-            count = ngenPerRun;
-        }
+        int count = 0;
+        std::cout << "MGEO: Run " << run << "..." << std::endl;
 #endif // MGEOCPP_DEBUG
         
         /**************************************************************************
                                  Initialization
         **************************************************************************/
-        if( reinitialize == true )
-        {
-            // Sample a new string.
-            initializeString();
+        // Sample a new string.
+        initializeString();
 
+        // Add the results to the list of Pareto points in the first run.
+        if (paretoFrontier.size() == 0)
+        {
             // Call the objective functions for the first time.
             if (!callObjectiveFunctions(string_, vars, f))
                 return false;
 
-            ngenPerRun++;
-
-            // Add the results to the list of Pareto points in the first run.
-            if (paretoFrontier.size() == 0)
-            {
-                std::copy(&vars[0], &vars[N], paretoPoint.vars);
-                std::copy(&f[0], &f[nf], paretoPoint.f);
-                paretoFrontier.push_back(paretoPoint);
-            }
+            std::copy(&vars[0], &vars[N], paretoPoint.vars);
+            std::copy(&f[0], &f[nf], paretoPoint.f);
+            paretoFrontier.push_back(paretoPoint);
         }
 
         /**************************************************************************
-                            Adaptability and Ranking
+                               Loop - Generation
         **************************************************************************/
+        for(int ngenPerRun = 1; ngenPerRun <= ngenMaxPerRun; ngenPerRun++)
+        {
+#ifdef MGEOCPP_DEBUG
+            if( ngenPerRun - count > 0.1*ngenMaxPerRun)
+            {
+                std::cout << static_cast<int>(ngenPerRun*100/ngenMaxPerRun) << "%" << "...";
+                std::cout.flush();
+                count = ngenPerRun;
+            }
+#endif // MGEOCPP_DEBUG
 
-        /* Choose which objective function will be used to compute the adaptability
-           and to assemble the rank. */
-        int chosenFunc = rand_f_(rng_);
+            /* Choose which objective function will be used to compute the adaptability
+               and to assemble the rank. */
+            int chosenFunc = rand_f_(rng_);
         
-        // Copy of string to be used in the parallel loop.
-        std::bitset<nb> string_p = string_;
+            // Copy of string to be used in the parallel loop.
+            std::bitset<nb> string_p = string_;
 
-        // Check if there was a problem with the objective functions.
-        bool objectiveFunctionsProblem = false;
+            // Check if there was a problem with the objective functions.
+            bool objectiveFunctionsProblem = false;
         
-        // List of all points created after flipping the bits.
-        sParetoPoint<N,nf,Scalar> candidatePoints[nb];
+            // List of all points created after flipping the bits.
+            sParetoPoint<N,nf,Scalar> candidatePoints[nb];
 
 #pragma omp parallel for schedule(dynamic) firstprivate(string_p) private(vars, f, paretoPoint)
-        for(int i = 0; i < designVarsNb_; i++)
-        {
-            // Toggle the j-th bit of the string.
-            string_p.flip(i);
+            for(int i = 0; i < designVarsNb_; i++)
+            {
+                // Toggle the j-th bit of the string.
+                string_p.flip(i);
                 
-            // Compute the objective functions. 
-            if(!callObjectiveFunctions(string_p, vars, f))
-                objectiveFunctionsProblem = true;
+                // Compute the objective functions. 
+                if(!callObjectiveFunctions(string_p, vars, f))
+                    objectiveFunctionsProblem = true;
+
+                // Create the candidate Pareto point.
+                std::copy(&vars[0], &vars[N], candidatePoints[i].vars);
+                std::copy(&f[0], &f[nf], candidatePoints[i].f);
             
-            // Create the candidate Pareto point.
-            std::copy(&vars[0], &vars[N], candidatePoints[i].vars);
-            std::copy(&f[0], &f[nf], candidatePoints[i].f);
-            
-            // Add the result to the rank.
-            fRank[i].first  = i;
-            fRank[i].second = f[chosenFunc];
+                // Add the result to the rank.
+                fRank[i].first  = i;
+                fRank[i].second = f[chosenFunc];
 
-            /* Notice that the bit does not need to unflip because string_p is a
-               copy of string on each thread. */
-        }
+                /* Notice that the bit does not need to unflip because string_p is a
+                   copy of string on each thread. */
+            }
 
-        // Check if there was a problem in the objective functions.
-        if(objectiveFunctionsProblem)
-            return false;
+            // Check if there was a problem in the objective functions.
+            if(objectiveFunctionsProblem)
+                return false;
 
-        // Add the points to the Pareto frontier.
-        for(int i = 0; i < designVarsNb_; i++)
-            checkDominance(candidatePoints[i]);
+            // Add the points to the Pareto frontier.
+            for(int i = 0; i < designVarsNb_; i++)
+                checkDominance(candidatePoints[i]);
 
-        // Ranking.
-        std::sort(fRank, fRank+designVarsNb_,
-            [](std::pair<int, Scalar> const &a, std::pair<int, Scalar> const &b)
+            // Ranking.
+            std::sort(fRank, fRank+designVarsNb_,
+                      [](std::pair<int, Scalar> const &a, std::pair<int, Scalar> const &b)
+                      {
+                          return a.second < b.second;
+                      });
+
+            // Choose a bit to be changed for the new "population".
+            bool bitAccepted = false;
+
+            while (bitAccepted == false)
             {
-                return a.second < b.second;
-            });
+                int b_sample = rand_string_bit_(rng_);
 
-        // Choose a bit to be changed for the new "population".
-        bool bitAccepted = false;
+                /* Accept the change with probability r^(-tal), where r is the rank
+                   of the bit. */
+                double Pk = std::pow(b_sample+1, -tau_);
 
-        while (bitAccepted == false)
-        {
-            int b_sample = rand_string_bit_(rng_);
-
-            /* Accept the change with probability r^(-tal), where r is the rank
-               of the bit. */
-            double Pk = std::pow(b_sample+1, -tau_);
-
-            if ( rand_(rng_) <= Pk  )
-            {
-                // If the toggle is accepted, then exit the loop.
-                string_.flip(fRank[b_sample].first);
-                bitAccepted = true;
+                if ( rand_(rng_) <= Pk  )
+                {
+                    // If the toggle is accepted, then exit the loop.
+                    string_.flip(fRank[b_sample].first);
+                    bitAccepted = true;
+                }
             }
         }
 
-        // A new generation has been created.
-        ngenPerRun++;
-
-        /* If the number of generations created is more than ngenMaxPerRun, then
-           reinitialize the algorithm. */
-        if (ngenPerRun > ngenMaxPerRun)
-        {
-            ngenPerRun = 0;
-            reinitialize = true;
-
 #ifdef MGEOCPP_DEBUG
-            std::cout << "100%" << std::endl << std::endl;
-            std::cout << "Pareto frontier at run " << run+1 << ":" 
-                      << std::endl
-                      << std::endl;
-            std::cout << "    Number of points: " 
-                      << paretoFrontier.size() 
-                      << std::endl;
-            std::cout << "    Memory (MB):      " 
-                      << paretoFrontier.size()*sizeof(sParetoPoint<N, nf, Scalar>)/1024.0/1024.0
-                      << std::endl << std::endl << std::endl;
-
-            count = 0;
-
-            if( run < runMax_)
-                std::cout << "MGEO: Run " << run+1 << " of " << runMax_ << "..." << std::endl;
+        std::cout << "100%" << std::endl << std::endl;
+        std::cout << "Pareto frontier at run " << run << ":" 
+                  << std::endl
+                  << std::endl;
+        std::cout << "    Number of points: " 
+                  << paretoFrontier.size() 
+                  << std::endl;
+        std::cout << "    Memory (MB):      " 
+                  << paretoFrontier.size()*sizeof(sParetoPoint<N, nf, Scalar>)/1024.0/1024.0
+                  << std::endl << std::endl << std::endl;
 #endif // MGEOCPP_DEBUG
-
-            run += 1;
-        }
     }
-
     return true;
 }
 

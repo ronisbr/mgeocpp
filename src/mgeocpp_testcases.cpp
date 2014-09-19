@@ -78,10 +78,10 @@ int main(int argc, char *argv[])
     const int testcase = 4;
 
     // For cases 1, 2, and 3.
-    MGEO<1, 16, 2> mgeo1v(0.5, 15000, 50);
+    MGEO<1, 16, 2> mgeo1v(0.5, 8000, 50);
 
     // For case 4.
-    MGEO<2, 32, 2> mgeo2v(0.5, 15000, 50);
+    MGEO<2, 32, 2> mgeo2v(0.5, 8000, 50);
 
     switch(testcase)
     {
