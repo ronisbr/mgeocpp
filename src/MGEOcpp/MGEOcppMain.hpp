@@ -39,6 +39,7 @@ MGEO<N, nb, nf, Scalar>::MGEO(double tau, int ngenMax, int runMax, int rng_seed)
       runMax_(runMax),
       designVarsConfigured_(false),
       designVarsNb_(0),
+      mgeoEps_(1E-10),
       rng_(rng_seed)
 {
 }
@@ -362,6 +363,12 @@ bool MGEO<N, nb, nf, Scalar>::checkDominance(sParetoPoint<N, nf, Scalar> p)
 
         for(int i = 0; i < nf; i++)
         {
+            /* If both objective functions are equal (given mgeoEps), then
+               nothing can be stated about the dominance of both points. 
+            */
+            if( std::abs(p.f[i] - it->f[i]) < mgeoEps_ )
+                continue;
+
             if( p.f[i] < it->f[i] )
             {
                 /* The candidate point is not dominated by the point in the

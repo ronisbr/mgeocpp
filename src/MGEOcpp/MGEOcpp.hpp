@@ -115,6 +115,11 @@ public:
         tau_ = tau;
     }
 
+    /// @brief Set the epsilon to compare objective functions.
+    void setEps(double eps) {
+        mgeoEps_ = eps;
+    }
+
     /// @brief Set the maximum number of generations.
     void setNGenMax(int ngenMax) {
         ngenMax_ = ngenMax;
@@ -186,6 +191,9 @@ private:
 
     /// Structure to store the configuration for each design variable.
     sDesignVariable<Scalar> designVars[N];
+
+    /// Epsilon to compare objective functions (default = 1E-10).
+    double mgeoEps_;
 
     /// String.
     std::bitset<nb> string_;
