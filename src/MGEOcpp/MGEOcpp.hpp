@@ -215,11 +215,6 @@ private:
         std::uniform_int_distribution<int>(0, nf-1)
             };
 
-    /// Uniform distribution, integers, 0 to nb-1.
-    std::uniform_int_distribution<int> rand_string_bit_{
-        std::uniform_int_distribution<int>(0, nb-1)
-            };
-
     /// Uniform distribution, double, 0 to 1.
     std::uniform_real_distribution<double> rand_{
         std::uniform_real_distribution<double>(0, 1)

@@ -508,6 +508,10 @@ bool MGEO<N, nb, nf, Scalar>::run()
     Scalar f[nf];
     sParetoPoint<N, nf, Scalar> paretoPoint;
 
+    /// Uniform distribution, integers, 0 to designVarsNb_-1.
+    std::uniform_int_distribution<int> rand_string_bit =
+        std::uniform_int_distribution<int>(0, designVarsNb_-1);
+
     // Maximum number generations created per run.
     int ngenMaxPerRun = std::floor(ngenMax_/runMax_);
 
@@ -618,7 +622,7 @@ bool MGEO<N, nb, nf, Scalar>::run()
 
             while (bitAccepted == false)
             {
-                int b_sample = rand_string_bit_(rng_);
+                int b_sample = rand_string_bit(rng_);
 
                 /* Accept the change with probability r^(-tal), where r is the rank
                    of the bit. */
